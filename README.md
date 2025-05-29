@@ -16,14 +16,20 @@ Build an API endpoint `/identify/` that, given an email and/or phone number, ide
 ## 🧪 Example Behavior
 
 1. `POST /identify/` with:
-   ```json
-   {"email": "foo@example.com", "phoneNumber": "123"}
-   ```
+```json
+{
+    "email": "a@example.com",
+    "phoneNumber": "8888"
+}
+```
 
 2. `POST /identify/` with:
-    ```json
-    {"email": "foo@example.com", "phoneNumber": "456"}
-    ```
+```json
+{
+    "email": "b@example.com",
+    "phoneNumber": "8888"
+}
+```
 
 ## Features
 - Link multiple emails and phones to a contact.
