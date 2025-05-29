@@ -75,17 +75,23 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 
-# postgres render: postgresql://bitespeed_postgres_database_user:FqXoiww6McEIK89EhFHRJGxTKhnfnbAE@dpg-d0s1f963jp1c73e7r3fg-a.oregon-postgres.render.com/bitespeed_postgres_database
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'customer_db',
-        'USER': 'root',
-        'PASSWORD': 'password',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'customer_db',
+#         'USER': 'root',
+#         'PASSWORD': 'password',
+#         'HOST': 'localhost',
+#         'PORT': '3306',
+#     }
+# }
 
 # DATABASES['default'] = dj_database_url.parse("postgresql://bitespeed_postgres_database_user:FqXoiww6McEIK89EhFHRJGxTKhnfnbAE@dpg-d0s1f963jp1c73e7r3fg-a.oregon-postgres.render.com/bitespeed_postgres_database")
 
