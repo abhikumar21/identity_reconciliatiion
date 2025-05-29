@@ -14,8 +14,9 @@ Build an API endpoint `/identify/` that, given an email and/or phone number, ide
 ---
 
 ## 🧪 Example Behavior
+-Creates a new Primary Contact
 
-1. `POST /identify/` with:
+### 1. `POST /identify/` with:
 ```json
 {
     "email": "a@example.com",
@@ -23,7 +24,9 @@ Build an API endpoint `/identify/` that, given an email and/or phone number, ide
 }
 ```
 
-2. `POST /identify/` with:
+-Links the new contact with existing primary contact with common e-mail or phone
+
+### 2. `POST /identify/` with:
 ```json
 {
     "email": "b@example.com",
@@ -91,9 +94,9 @@ Response
 ```
 
 ### Requirements
-Python 3.8+
-Django 4.x
-Django REST Framework
+-Python 3.8+
+-Django 4.x
+-Django REST Framework
 
 
   
