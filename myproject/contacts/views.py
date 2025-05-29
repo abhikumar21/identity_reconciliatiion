@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Q
 from .models import Contact
-from .serializers import ContactSerializer
+
 
 class IdentifyView(APIView):
     def post(self, request):
@@ -13,79 +13,75 @@ class IdentifyView(APIView):
         if not email and not phoneNumber:
             return Response({"error": "At least one of email or phoneNumber is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Fetch contacts matching email or phoneNumber
-        contacts = Contact.objects.filter(
+        # Step 1: Fetch contacts directly matching email or phone
+        initial_contacts = list(Contact.objects.filter(
             Q(email=email) | Q(phoneNumber=phoneNumber)
-        )
+        ))
 
-        if contacts.exists():
-            # Build a set of all related contacts
-            related_contacts = set(contacts)
-            for contact in contacts:
-                if contact.linkedId:
-                    related_contacts.update(Contact.objects.filter(Q(id=contact.linkedId) | Q(linkedId=contact.linkedId)))
-                else:
-                    related_contacts.update(Contact.objects.filter(linkedId=contact.id))
+        # Step 2: Explore all transitive linked contacts
+        all_contacts = set(initial_contacts)
+        queue = list(initial_contacts)
 
-            # Determine primary contact
-            primary_contact = min(
-                [c for c in related_contacts if c.linkPrecedence == 'primary'],
-                key=lambda x: x.createdAt,
-                default=None
+        while queue:
+            current = queue.pop()
+            linked_contacts = Contact.objects.filter(
+                Q(linkedId=current.id) | Q(id=current.linkedId_id)
             )
+            for contact in linked_contacts:
+                if contact not in all_contacts:
+                    all_contacts.add(contact)
+                    queue.append(contact)
 
-            if not primary_contact:
-                primary_contact = min(related_contacts, key=lambda x: x.createdAt)
-                primary_contact.linkPrecedence = 'primary'
-                primary_contact.linkedId = None
-                primary_contact.save()
-
-            # Update other contacts to secondary
-            for contact in related_contacts:
-                if contact.id != primary_contact.id and contact.linkPrecedence != 'secondary':
-                    contact.linkPrecedence = 'secondary'
-                    contact.linkedId = primary_contact
-                    contact.save()
-
-            # If new info, create secondary contact
-            existing_emails = {c.email for c in related_contacts if c.email}
-            existing_phones = {c.phoneNumber for c in related_contacts if c.phoneNumber}
-
-            if (email and email not in existing_emails) or (phoneNumber and phoneNumber not in existing_phones):
-                new_contact = Contact.objects.create(
-                    email=email,
-                    phoneNumber=phoneNumber,
-                    linkedId=primary_contact,
-                    linkPrecedence='secondary'
-                )
-                related_contacts.add(new_contact)
-
-            # Prepare response
-            emails = list({c.email for c in related_contacts if c.email})
-            phoneNumbers = list({c.phoneNumber for c in related_contacts if c.phoneNumber})
-            secondaryContactIds = [c.id for c in related_contacts if c.linkPrecedence == 'secondary']
-
-            return Response({
-                "contact": {
-                    "primaryContatctId": primary_contact.id,
-                    "emails": emails,
-                    "phoneNumbers": phoneNumbers,
-                    "secondaryContactIds": secondaryContactIds
-                }
-            }, status=status.HTTP_200_OK)
-
-        else:
-            # Create new primary contact
-            new_contact = Contact.objects.create(
+        # Step 3: Identify the primary contact (earliest creation time among primaries)
+        if not all_contacts:
+            # No existing contact found — create a new primary
+            primary = Contact.objects.create(
                 email=email,
                 phoneNumber=phoneNumber,
                 linkPrecedence='primary'
             )
-            return Response({
-                "contact": {
-                    "primaryContatctId": new_contact.id,
-                    "emails": [email] if email else [],
-                    "phoneNumbers": [phoneNumber] if phoneNumber else [],
-                    "secondaryContactIds": []
-                }
-            }, status=status.HTTP_200_OK)
+            all_contacts = {primary}
+        else:
+            primary_contacts = [c for c in all_contacts if c.linkPrecedence == 'primary']
+            if primary_contacts:
+                primary = min(primary_contacts, key=lambda c: c.createdAt)
+            else:
+                primary = min(all_contacts, key=lambda c: c.createdAt)
+                primary.linkPrecedence = 'primary'
+                primary.linkedId = None
+                primary.save()
+
+
+        # Step 4: Convert others to secondary
+        for contact in all_contacts:
+            if contact.id != primary.id and (contact.linkPrecedence != 'secondary' or contact.linkedId_id != primary.id):
+                contact.linkPrecedence = 'secondary'
+                contact.linkedId = primary
+                contact.save()
+
+        # Step 5: If this email/phone is new, create a new secondary
+        emails = set(c.email for c in all_contacts if c.email)
+        phones = set(c.phoneNumber for c in all_contacts if c.phoneNumber)
+
+        if (email and email not in emails) or (phoneNumber and phoneNumber not in phones):
+            new_contact = Contact.objects.create(
+                email=email,
+                phoneNumber=phoneNumber,
+                linkedId=primary,
+                linkPrecedence='secondary'
+            )
+            all_contacts.add(new_contact)
+
+        # Step 6: Build response
+        emails = list(set(c.email for c in all_contacts if c.email))
+        phones = list(set(c.phoneNumber for c in all_contacts if c.phoneNumber))
+        secondary_ids = [c.id for c in all_contacts if c.linkPrecedence == 'secondary']
+
+        return Response({
+            "contact": {
+                "primaryContatctId": primary.id,
+                "emails": emails,
+                "phoneNumbers": phones,
+                "secondaryContactIds": secondary_ids
+            }
+        }, status=status.HTTP_200_OK)
