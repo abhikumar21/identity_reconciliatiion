@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import dj_database_url
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -74,6 +74,8 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+
+# postgres render: postgresql://bitespeed_postgres_database_user:FqXoiww6McEIK89EhFHRJGxTKhnfnbAE@dpg-d0s1f963jp1c73e7r3fg-a.oregon-postgres.render.com/bitespeed_postgres_database
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -84,6 +86,8 @@ DATABASES = {
         'PORT': '3306',
     }
 }
+
+# DATABASES['default'] = dj_database_url.parse("postgresql://bitespeed_postgres_database_user:FqXoiww6McEIK89EhFHRJGxTKhnfnbAE@dpg-d0s1f963jp1c73e7r3fg-a.oregon-postgres.render.com/bitespeed_postgres_database")
 
 
 # Password validation
